@@ -1,6 +1,7 @@
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/voice_profile.dart';
 import '../providers/hydration_provider.dart';
 import '../widgets/progress_ring.dart';
 
