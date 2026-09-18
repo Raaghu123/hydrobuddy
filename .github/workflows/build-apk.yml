@@ -9,9 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -19,16 +19,27 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.35.x
 
-      - run: flutter pub get
+      - run: flutter doctor -v
         working-directory: .
 
-      # debug APK = easy to install for testing, no signing needed
-      - run: flutter build apk --debug
+      # Repair missing native folders (this repo only tracked lib/ + minimal android/).
+      # flutter create fills android/, ios/ scaffolding without overwriting lib/.
+      - run: |
+          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
+            flutter create . --project-name hydration_reminder --org com.hydrobuddy.app --platforms android
+          fi
+          flutter pub get
+        working-directory: .
+
+      - run: flutter analyze || true
+        working-directory: .
+
+      - run: flutter build apk --debug -v
         working-directory: .
 
       - uses: actions/upload-artifact@v4
         with:
           name: hydrobuddy-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
