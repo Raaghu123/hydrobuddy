@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -16,13 +15,9 @@ class NotificationService {
 
   static Future<void> init() async {
     if (_init) return;
+    // No device-timezone plugin needed: we schedule one-shot alarms as
+    // absolute instants (tz.UTC), so wall-clock zones can't skew intervals.
     tzdata.initializeTimeZones();
-    try {
-      final zone = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(zone));
-    } catch (e) {
-      debugPrint('timezone fallback to UTC: $e');
-    }
 
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings();
@@ -86,7 +81,8 @@ class NotificationService {
         reminderId,
         'Time to hydrate!',
         '$phrase — tap to log your drink',
-        tz.TZDateTime.from(when, tz.local),
+        // Same instant as the local wall-clock time (one-shot, no repeats).
+        tz.TZDateTime.from(when, tz.UTC),
         NotificationDetails(
             android: android, iOS: const DarwinNotificationDetails()),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

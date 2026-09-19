@@ -11,7 +11,7 @@ State = SharedPreferences JSON. Voice = on-device TTS / recordings / uploads.
 |---|---|
 | `lib/main.dart` | Startup: `NotificationService.init()` → load provider → wire `onAction` taps → `ensureScheduled()` → tabs (Drink/Stats/Settings) |
 | `lib/providers/hydration_provider.dart` | Single source of truth: logs, goal, `reminderIntervalMin` (exact 15–240), voice/sound/vibrate prefs, quiet hours, `nextReminderAt`, streak, achievements. Scheduling entry points: `ensureScheduled()`, `refreshSchedule()`, `snooze()`, `tick()` (in-app 20s timer). `addWater/undoLast/setQuiet/setInterval` all re-schedule |
-| `lib/services/notification_service.dart` | System alarms ONLY: permission requests, `scheduleNext(fireAt, phrase)` via `zonedSchedule` + exact alarm, action buttons `drank_250` / `snooze_15`, `onAction` callback. Chain-of-one: exactly one alarm (id 1001) always pending |
+| `lib/services/notification_service.dart` | System alarms ONLY: permission requests, `scheduleNext(fireAt, phrase)` via `zonedSchedule` + exact alarm, action buttons `drank_250` / `snooze_15`, `onAction` callback. Chain-of-one: exactly one alarm (id 1001) always pending. Times scheduled as UTC instants (one-shots need no device zone) |
 | `lib/services/voice_reminder_service.dart` | Foreground sound: TTS (profile pitch/rate) OR `customVoicePath` recording OR `customSoundPath` upload (`AlertSound.customFile`), + vibration. `playReminder()` returns bool (false in quiet) |
 | `lib/services/custom_voice_service.dart` | Mic recording (`record`) + file upload (`file_picker`) into app docs; list/delete |
 | `lib/models/voice_profile.dart` | `VoiceProfile` presets (hero/coach/calm/robot/custom — originals, NOT celebrity clones), `AlertSound` enum, `ordinalWord()` / `cupReminderPhrase(n)` |
@@ -37,6 +37,7 @@ State = SharedPreferences JSON. Voice = on-device TTS / recordings / uploads.
 - `flutter_local_notifications` v17 NEEDS desugaring → `patch_android.py` appends it. v16 doesn't compile on new SDK. Stay on v17+.
 - `vibration` must be v3+ (v2 targets android-33 → AAR metadata failure).
 - `record` must be v6+ for current Flutter stable.
+- BANNED: `flutter_timezone` (breaks Gradle with JVM-target clash; UTC instants suffice).
 - `periodicallyShow` can't do 30/45-min intervals — that path is dead, use `scheduleNext` chain.
 - Extensions (e.g. `AlertSound.label`) need a DIRECT `voice_profile.dart` import in every file using them.
 - Provider ↔ NotificationService: provider may import the service; never the reverse (main.dart wires callbacks).
