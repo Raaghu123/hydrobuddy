@@ -23,7 +23,7 @@ jobs:
       - run: flutter doctor -v
         working-directory: .
 
-      # Generate fresh Android v2-embedding scaffold, then inject our permissions.
+      # Generate fresh Android v2-embedding scaffold, then inject permissions + desugaring.
       - run: |
           flutter create . --project-name hydration_reminder --org com.hydrobuddy.app --platforms android
           python3 - <<'PY'
@@ -45,6 +45,27 @@ jobs:
               print('permissions injected')
           else:
               print('permissions already present')
+
+          # flutter_local_notifications requires core library desugaring.
+          for name in ['android/app/build.gradle', 'android/app/build.gradle.kts']:
+              p = pathlib.Path(name)
+              if not p.exists():
+                  continue
+              s = p.read_text()
+              if 'desugar_jdk_libs' in s:
+                  print(name, 'already has desugaring')
+                  continue
+              if name.endswith('.kts'):
+                  s = s.replace('sourceCompatibility = JavaVersion.VERSION_17',
+                                'sourceCompatibility = JavaVersion.VERSION_17\n        isCoreLibraryDesugaringEnabled = true')
+                  # add dep before final closing brace of dependencies block
+                  s = s.replace('dependencies {', 'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")', 1)
+              else:
+                  s = s.replace('sourceCompatibility = JavaVersion.VERSION_17',
+                                'sourceCompatibility = JavaVersion.VERSION_17\n        coreLibraryDesugaringEnabled true')
+                  s = s.replace('dependencies {', "dependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'", 1)
+              p.write_text(s)
+              print('desugaring patched:', name)
           PY
           flutter pub get
         working-directory: .
