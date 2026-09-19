@@ -46,7 +46,7 @@ class NotificationService {
       RepeatInterval.everyMinute, // OS minimum; real interval enforced by reschedule
       NotificationDetails(
           android: android, iOS: const DarwinNotificationDetails()),
-      androidAllowWhileIdle: true,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
     // Note: for exact custom intervals (60/90/120m) on production,
     // use zonedSchedule loop or WorkManager. This keeps Play-policy-safe MVP.
