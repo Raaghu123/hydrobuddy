@@ -19,6 +19,7 @@ class HydrationProvider extends ChangeNotifier {
   static const _kQuietEnd = 'quiet_end_min';
   static const _kCustomPath = 'custom_voice_path';
   static const _kCustomSound = 'custom_sound_path';
+  static const _kNextAt = 'next_reminder_at';
 
   static const List<int> intervalPresets = [30, 45, 60, 90, 120];
 
@@ -33,6 +34,7 @@ class HydrationProvider extends ChangeNotifier {
   int quietEndMin = 7 * 60; // 07:00 default
   String? customVoicePath;
   String? customSoundPath;
+  DateTime? nextReminderAt;
   Set<String> unlocked = {};
   int streakDays = 0;
   String? lastCelebratedAchievement;
@@ -127,6 +129,9 @@ class HydrationProvider extends ChangeNotifier {
     quietEndMin = prefs.getInt(_kQuietEnd) ?? 7 * 60;
     customVoicePath = prefs.getString(_kCustomPath);
     customSoundPath = prefs.getString(_kCustomSound);
+    final nextMs = prefs.getInt(_kNextAt);
+    nextReminderAt =
+        nextMs == null ? null : DateTime.fromMillisecondsSinceEpoch(nextMs);
     streakDays = prefs.getInt(_kStreak) ?? 0;
     unlocked = (prefs.getStringList(_kAchievements) ?? []).toSet();
     final raw = prefs.getString(_kLogs);
@@ -162,6 +167,11 @@ class HydrationProvider extends ChangeNotifier {
     } else {
       await prefs.setString(_kCustomSound, customSoundPath!);
     }
+    if (nextReminderAt == null) {
+      await prefs.remove(_kNextAt);
+    } else {
+      await prefs.setInt(_kNextAt, nextReminderAt!.millisecondsSinceEpoch);
+    }
     await prefs.setInt(_kStreak, streakDays);
     await prefs.setStringList(_kAchievements, unlocked.toList());
   }
@@ -172,6 +182,8 @@ class HydrationProvider extends ChangeNotifier {
     _updateStreak();
     await _save();
     notifyListeners();
+    // Refresh the scheduled notification so its text names the NEW next cup.
+    await refreshSchedule();
   }
 
   Future<void> undoLast() async {
@@ -179,6 +191,7 @@ class HydrationProvider extends ChangeNotifier {
     _logs.removeLast();
     await _save();
     notifyListeners();
+    await refreshSchedule();
   }
 
   Future<void> setGoal(int ml) async {
@@ -188,13 +201,58 @@ class HydrationProvider extends ChangeNotifier {
   }
 
   Future<void> setInterval(int minutes) async {
-    // Snap to nearest supported preset (30/45/60/90/120) — user preset wins.
-    int snapped = intervalPresets.reduce(
-        (a, b) => (minutes - a).abs() < (minutes - b).abs() ? a : b);
-    reminderIntervalMin = snapped;
-    await NotificationService.scheduleRepeating(reminderIntervalMin);
+    // Exact user value (15–240 min) — presets and custom slider both land here.
+    reminderIntervalMin = minutes.clamp(15, 240);
+    nextReminderAt = nextReminderAfter(DateTime.now());
+    await NotificationService.scheduleNext(
+        fireAt: nextReminderAt!, phrase: nextCupPhrase);
     await _save();
     notifyListeners();
+  }
+
+  /// Schedule (or re-schedule) the next reminder. Call on app start,
+  /// after logging water, after tapping a notification, after snooze.
+  Future<void> ensureScheduled() async {
+    final now = DateTime.now();
+    if (nextReminderAt == null || nextReminderAt!.isBefore(now)) {
+      nextReminderAt = nextReminderAfter(now);
+    }
+    await NotificationService.scheduleNext(
+        fireAt: nextReminderAt!, phrase: nextCupPhrase);
+    await _save();
+    notifyListeners();
+  }
+
+  Future<void> refreshSchedule() => ensureScheduled();
+
+  Future<void> snooze(Duration by) async {
+    nextReminderAt = DateTime.now().add(by);
+    await NotificationService.scheduleNext(
+        fireAt: nextReminderAt!, phrase: nextCupPhrase);
+    await _save();
+    notifyListeners();
+  }
+
+  /// Called by a lightweight timer while the app is open.
+  /// Returns the phrase to speak when a reminder falls due, else null.
+  Future<String?> tick() async {
+    final now = DateTime.now();
+    if (nextReminderAt == null || nextReminderAt!.isAfter(now)) return null;
+    if (isQuietNow) {
+      nextReminderAt = nextReminderAfter(now);
+      await NotificationService.scheduleNext(
+          fireAt: nextReminderAt!, phrase: nextCupPhrase);
+      await _save();
+      notifyListeners();
+      return null;
+    }
+    final phrase = nextCupPhrase;
+    nextReminderAt = nextReminderAfter(now);
+    await NotificationService.scheduleNext(
+        fireAt: nextReminderAt!, phrase: nextCupPhrase);
+    await _save();
+    notifyListeners();
+    return phrase;
   }
 
   Future<void> setVoice(String id) async {
@@ -219,6 +277,9 @@ class HydrationProvider extends ChangeNotifier {
     quietEnabled = enabled;
     quietStartMin = startMin.clamp(0, 1439);
     quietEndMin = endMin.clamp(0, 1439);
+    nextReminderAt = nextReminderAfter(DateTime.now());
+    await NotificationService.scheduleNext(
+        fireAt: nextReminderAt!, phrase: nextCupPhrase);
     await _save();
     notifyListeners();
   }

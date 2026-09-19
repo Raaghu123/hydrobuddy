@@ -12,7 +12,17 @@ Future<void> main() async {
   await NotificationService.init();
   final hydration = HydrationProvider();
   await hydration.load();
-  await NotificationService.scheduleRepeating(hydration.reminderIntervalMin);
+  // Notification taps / action buttons work even when the app was closed.
+  NotificationService.onAction = (action) async {
+    if (action == 'drank_250') {
+      await hydration.addWater(250);
+    } else if (action == 'snooze_15') {
+      await hydration.snooze(const Duration(minutes: 15));
+    } else {
+      await hydration.ensureScheduled();
+    }
+  };
+  await hydration.ensureScheduled();
   runApp(
     ChangeNotifierProvider.value(
       value: hydration,
@@ -43,12 +53,16 @@ class _Tabs extends StatefulWidget {
 
 class _TabsState extends State<_Tabs> {
   int _i = 0;
-  final _pages = const [HomeScreen(), StatsScreen(), SettingsScreen()];
 
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      HomeScreen(onViewAllHistory: () => setState(() => _i = 1)),
+      const StatsScreen(),
+      const SettingsScreen(),
+    ];
     return Scaffold(
-      body: _pages[_i],
+      body: pages[_i],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _i,
         onDestinationSelected: (v) => setState(() => _i = v),

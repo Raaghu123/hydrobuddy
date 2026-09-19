@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
+/// Hydrify-style progress ring: blue track, water drop + intake in the middle.
 class ProgressRing extends StatelessWidget {
   final double progress;
   final int todayMl;
@@ -12,37 +14,53 @@ class ProgressRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pct = (progress.clamp(0.0, 1.0) * 100).toInt();
     return SizedBox(
-      height: 230,
-      width: 230,
+      height: 220,
+      width: 220,
       child: Stack(
         alignment: Alignment.center,
         children: [
           SizedBox(
-            height: 230,
-            width: 230,
+            height: 220,
+            width: 220,
             child: CircularProgressIndicator(
               value: progress.clamp(0.0, 1.0),
-              strokeWidth: 22,
+              strokeWidth: 20,
               strokeCap: StrokeCap.round,
-              backgroundColor: Colors.white,
-              valueColor: const AlwaysStoppedAnimation(Color(0xFF00C2FF)),
+              backgroundColor: AppTheme.tile,
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppTheme.primary),
             ),
           ),
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('💧', style: TextStyle(fontSize: 36)),
-              Text('$todayMl ml',
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineLarge
-                      ?.copyWith(color: const Color(0xFF1B2CC1))),
-              Text('of $goalMl ml goal',
-                  style: const TextStyle(color: Colors.blueGrey)),
-              Text('${(progress * 100).toInt()}%',
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: AppTheme.tile,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.water_drop,
+                    color: AppTheme.primary, size: 30),
+              ),
+              const SizedBox(height: 6),
+              Text('$todayMl',
                   style: const TextStyle(
-                      fontWeight: FontWeight.w800, color: Color(0xFF00C2FF))),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 30,
+                      color: AppTheme.ink,
+                      letterSpacing: -0.5)),
+              Text('/$goalMl mL',
+                  style:
+                      const TextStyle(color: AppTheme.muted, fontSize: 13)),
+              const SizedBox(height: 2),
+              Text('$pct%',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.primary,
+                      fontSize: 14)),
             ],
           ),
         ],

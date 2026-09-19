@@ -1,29 +1,37 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HydroBuddy Preview</title>
+<title>HydroBuddy Hydrify Preview</title>
 <style>
-body{font-family:system-ui,sans-serif;background:#F0F9FF;margin:0;display:flex;justify-content:center}
-.phone{width:380px;min-height:780px;background:#F0F9FF;margin:20px;border-radius:36px;border:10px solid #111;overflow:hidden}
-.header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px}
-.streak{background:#FFC42E;border-radius:20px;padding:6px 12px;font-weight:800}
-.ring{width:220px;height:220px;border-radius:50%;margin:10px auto;display:grid;place-items:center;background:conic-gradient(#00C2FF 0 65%,#fff 65% 100%);position:relative}
-.ring:after{content:'';position:absolute;inset:18px;background:#F0F9FF;border-radius:50%}
+*{box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#EDF4F9;margin:0;display:flex;justify-content:center}
+.phone{width:380px;min-height:800px;background:#EDF4F9;margin:20px;border-radius:36px;border:10px solid #111;overflow:hidden;padding:16px}
+.row{display:flex;align-items:center;gap:10px}
+.avatar{width:48px;height:48px;border-radius:50%;background:#E3F1FD;display:grid;place-items:center;font-size:24px}
+.streak{background:#FFF3D9;border-radius:20px;padding:6px 12px;font-weight:800}
+.card{background:#fff;border-radius:24px;padding:20px;margin-top:14px}
+.ring{width:190px;height:190px;border-radius:50%;margin:6px auto;display:grid;place-items:center;background:conic-gradient(#1E9BF3 0 65%,#E3F1FD 65% 100%);position:relative}
+.ring:after{content:'';position:absolute;inset:18px;background:#fff;border-radius:50%}
 .inner{position:relative;z-index:1;text-align:center}
-.inner h1{color:#1B2CC1;margin:0;font-size:30px}
-.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:10px}
-.btns button{background:#1B2CC1;color:#fff;border:0;border-radius:16px;padding:12px 16px;font-weight:800}
-.card{background:#fff;border-radius:20px;margin:12px 16px;padding:14px}
-.nav{display:flex;justify-content:space-around;padding:14px;background:#fff;border-top:1px solid #eee;font-weight:700;color:#1B2CC1}
-.bar{display:flex;align-items:end;gap:8px;height:110px;margin-top:10px}
-.bar div{flex:1;background:#00C2FF;border-radius:8px;text-align:center;font-size:10px;color:#fff}
+.inner h1{color:#0A2540;margin:0;font-size:30px}
+.pill{background:#1E9BF3;color:#fff;border:0;border-radius:16px;padding:14px;font-weight:800;flex:1}
+.chips{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.chips span{background:#E3F1FD;color:#1E9BF3;border-radius:12px;padding:6px 12px;font-weight:700;font-size:13px}
+.chips span.on{background:#1E9BF3;color:#fff}
+.voice{background:linear-gradient(135deg,#1E9BF3,#5AB8FF);color:#fff;border-radius:24px;padding:16px;margin-top:14px}
+.hist{margin-top:6px}.hrow{display:flex;align-items:center;gap:10px;padding:8px 0}
+.tile{width:44px;height:44px;border-radius:14px;background:#E3F1FD;display:grid;place-items:center}
+.nav{display:flex;justify-content:space-around;background:#fff;border-radius:20px;margin-top:14px;padding:12px;font-weight:700;color:#1E9BF3;font-size:13px}
 </style></head><body>
 <div class="phone">
-<div class="header"><b>💧 HydroBuddy</b><span class="streak">🔥 4</span></div>
-<div class="ring"><div class="inner"><div style="font-size:34px">💧</div><h1>1625 ml</h1><small>of 2500 ml goal</small><div><b>65%</b></div></div></div>
-<div class="btns"><button>🥤 +150</button><button>💧 +250</button><button>🥛 +350</button><button>🐳 +500</button></div>
-<div class="card">🏅 <b>3 / 6 achievements</b><br><small>first_sip • half_way • big_chug</small></div>
-<div class="card"><b>📊 Last 7 days</b><div class="bar">
-<div style="height:40%">M</div><div style="height:70%">T</div><div style="height:55%">W</div><div style="height:90%;background:#4ADE80">T</div><div style="height:65%">F</div><div style="height:30%">S</div><div style="height:65%">S</div>
+<div class="row"><div class="avatar">👤</div><div style="flex:1"><small style="color:#6B7C93">Good morning,</small><div style="font-weight:800;font-size:19px;color:#0A2540">Stay Hydrated</div></div><span class="streak">🔥 4</span></div>
+<div class="card"><div class="row" style="justify-content:space-between"><small style="color:#6B7C93;font-weight:700">Daily Goal</small><span style="background:#E3F1FD;color:#1E9BF3;border-radius:10px;padding:4px 10px;font-size:12px;font-weight:800">65%</span></div>
+<div class="ring"><div class="inner"><div style="font-size:28px">💧</div><h1>1625</h1><small style="color:#6B7C93">/2500 mL</small></div></div>
+<div class="row" style="margin-top:12px"><button class="pill">Drink 250 mL</button></div>
+<div class="chips"><span>100</span><span>150</span><span class="on">250</span><span>350</span><span>500</span></div></div>
+<div class="voice"><b>"It's time for your 4th cup of water"</b><br><small>Hero voice • every 45 min • vibrate</small></div>
+<div class="card"><div class="row" style="justify-content:space-between"><b>History</b><span style="color:#1E9BF3;font-weight:700">View All</span></div>
+<div class="hist">
+<div class="hrow"><div class="tile">💧</div><div style="flex:1"><b>Water</b><br><small style="color:#6B7C93">9:30 AM</small></div><b>+250 mL</b></div>
+<div class="hrow"><div class="tile">💧</div><div style="flex:1"><b>Water</b><br><small style="color:#6B7C93">8:45 AM</small></div><b>+350 mL</b></div>
+<div class="hrow"><div class="tile">💧</div><div style="flex:1"><b>Water</b><br><small style="color:#6B7C93">8:00 AM</small></div><b>+250 mL</b></div>
 </div></div>
-<div class="card">⌚ <b>Wear OS + Widget ready</b><br><small>Tile mirrors 65% • Widget shows ring</small></div>
 <div class="nav"><span>💧 Drink</span><span>📊 Stats</span><span>⚙️ Settings</span></div>
 </div></body></html>
