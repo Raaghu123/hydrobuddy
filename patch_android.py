@@ -3,6 +3,9 @@ import pathlib
 import re
 
 m = pathlib.Path('android/app/src/main/AndroidManifest.xml')
+if not m.exists():
+    print('manifest missing, skipping (run flutter create first)')
+    raise SystemExit(0)
 t = m.read_text()
 perms = (
     '    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n'
