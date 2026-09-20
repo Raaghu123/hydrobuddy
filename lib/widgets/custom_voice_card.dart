@@ -94,16 +94,51 @@ class _CustomVoiceCardState extends State<CustomVoiceCard> {
                             .setCustomVoicePath(p);
                       }
                     } else {
-                      final p =
-                          await CustomVoiceService.startRecording();
-                      if (p == null && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                      final status =
+                          await CustomVoiceService.micStatus();
+                      if (status == MicStatus.granted) {
+                        final p =
+                            await CustomVoiceService.startRecording();
+                        if (p == null && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      'Could not start recording — try again')));
+                          return;
+                        }
+                        setState(() {_recording = true; _activePath = p;});
+                      } else if (status == MicStatus.permanentlyDenied) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text(
-                                    '🎙️ Mic permission needed to record')));
-                        return;
+                                    'Mic blocked — enable it in system settings to record')),
+                          );
+                          await context
+                              .read<HydrationProvider>()
+                              .openSystemSettings();
+                          await context
+                              .read<HydrationProvider>()
+                              .refreshPermissions();
+                        }
+                      } else {
+                        final p =
+                            await CustomVoiceService.startRecording();
+                        if (p == null && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      'Mic permission needed to record')));
+                          await context
+                              .read<HydrationProvider>()
+                              .refreshPermissions();
+                          return;
+                        }
+                        setState(() {_recording = true; _activePath = p;});
+                        await context
+                            .read<HydrationProvider>()
+                            .refreshPermissions();
                       }
-                      setState(() {_recording = true; _activePath = p;});
                     }
                   },
                 ),

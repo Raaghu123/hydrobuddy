@@ -10,7 +10,9 @@ import '../widgets/progress_ring.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onViewAllHistory;
-  const HomeScreen({super.key, this.onViewAllHistory});
+  final VoidCallback? onEnableReminders;
+  const HomeScreen(
+      {super.key, this.onViewAllHistory, this.onEnableReminders});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -103,7 +105,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
                 _heroCard(context, h),
                 const SizedBox(height: 16),
-                _voiceCard(context, h),
+                h.remindersAvailable
+                    ? _voiceCard(context, h)
+                    : _permissionCta(context, h),
                 const SizedBox(height: 16),
                 _historyCard(context, h, todayLogs),
                 const SizedBox(height: 16),
@@ -267,6 +271,63 @@ class _HomeScreenState extends State<HomeScreen> {
                   .toList(),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _permissionCta(BuildContext context, HydrationProvider h) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF6B6B), Color(0xFFFF9F68)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        leading: Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.22),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.notifications_off,
+              color: Colors.white, size: 24),
+        ),
+        title: const Text('Reminders are off',
+            style: TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w800)),
+        subtitle: const Text(
+            'Grant notification access to unlock voice reminders, sounds and buzzes.',
+            style: TextStyle(color: Colors.white70, fontSize: 12)),
+        trailing: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: const Color(0xFFFF6B6B),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
+            elevation: 0,
+          ),
+          onPressed: () async {
+            final ok = await context
+                .read<HydrationProvider>()
+                .requestReminderPermissions();
+            if (!ok && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text(
+                        'Permission denied — reminders stay locked.')),
+              );
+            }
+            widget.onEnableReminders?.call();
+          },
+          child: const Text('Enable',
+              style: TextStyle(fontWeight: FontWeight.w800)),
         ),
       ),
     );

@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/hydration_log.dart';
 import '../models/voice_profile.dart';
@@ -35,6 +37,18 @@ class HydrationProvider extends ChangeNotifier {
   String? customVoicePath;
   String? customSoundPath;
   DateTime? nextReminderAt;
+
+  // ---- Permission wall ----
+  // Reminder/voice features are HARD-GATED on these: no grant = no access.
+  bool notifGranted = false;
+  bool alarmGranted = false;
+  bool micGranted = false;
+
+  /// Reminders (notifications + voice) are usable only when granted.
+  bool get remindersAvailable => notifGranted;
+  /// Exact-minute timing needs the alarm permission (Android); without it
+  /// the OS may deliver buzzes late — surfaced as a warning, not a block.
+  bool get exactTiming => !Platform.isAndroid || alarmGranted;
   Set<String> unlocked = {};
   int streakDays = 0;
   String? lastCelebratedAchievement;
@@ -204,8 +218,10 @@ class HydrationProvider extends ChangeNotifier {
     // Exact user value (15–240 min) — presets and custom slider both land here.
     reminderIntervalMin = minutes.clamp(15, 240);
     nextReminderAt = nextReminderAfter(DateTime.now());
-    await NotificationService.scheduleNext(
-        fireAt: nextReminderAt!, phrase: nextCupPhrase);
+    if (remindersAvailable) {
+      await NotificationService.scheduleNext(
+          fireAt: nextReminderAt!, phrase: nextCupPhrase);
+    }
     await _save();
     notifyListeners();
   }
@@ -217,8 +233,10 @@ class HydrationProvider extends ChangeNotifier {
     if (nextReminderAt == null || nextReminderAt!.isBefore(now)) {
       nextReminderAt = nextReminderAfter(now);
     }
-    await NotificationService.scheduleNext(
-        fireAt: nextReminderAt!, phrase: nextCupPhrase);
+    if (remindersAvailable) {
+      await NotificationService.scheduleNext(
+          fireAt: nextReminderAt!, phrase: nextCupPhrase);
+    }
     await _save();
     notifyListeners();
   }
@@ -227,15 +245,19 @@ class HydrationProvider extends ChangeNotifier {
 
   Future<void> snooze(Duration by) async {
     nextReminderAt = DateTime.now().add(by);
-    await NotificationService.scheduleNext(
-        fireAt: nextReminderAt!, phrase: nextCupPhrase);
+    if (remindersAvailable) {
+      await NotificationService.scheduleNext(
+          fireAt: nextReminderAt!, phrase: nextCupPhrase);
+    }
     await _save();
     notifyListeners();
   }
 
   /// Called by a lightweight timer while the app is open.
   /// Returns the phrase to speak when a reminder falls due, else null.
+  /// Hard-gated: silent until notification permission is granted.
   Future<String?> tick() async {
+    if (!remindersAvailable) return null;
     final now = DateTime.now();
     if (nextReminderAt == null || nextReminderAt!.isAfter(now)) return null;
     if (isQuietNow) {
@@ -278,8 +300,10 @@ class HydrationProvider extends ChangeNotifier {
     quietStartMin = startMin.clamp(0, 1439);
     quietEndMin = endMin.clamp(0, 1439);
     nextReminderAt = nextReminderAfter(DateTime.now());
-    await NotificationService.scheduleNext(
-        fireAt: nextReminderAt!, phrase: nextCupPhrase);
+    if (remindersAvailable) {
+      await NotificationService.scheduleNext(
+          fireAt: nextReminderAt!, phrase: nextCupPhrase);
+    }
     await _save();
     notifyListeners();
   }
@@ -296,6 +320,51 @@ class HydrationProvider extends ChangeNotifier {
     if (path != null) alertSound = AlertSound.customFile;
     await _save();
     notifyListeners();
+  }
+
+  // ---------- Permission wall ----------
+  Future<void> refreshPermissions() async {
+    try {
+      notifGranted = await Permission.notification.isGranted;
+    } catch (_) {
+      notifGranted = false;
+    }
+    if (Platform.isAndroid) {
+      try {
+        alarmGranted = await Permission.scheduleExactAlarm.isGranted;
+      } catch (_) {
+        alarmGranted = false;
+      }
+    } else {
+      alarmGranted = true;
+    }
+    try {
+      micGranted = await Permission.microphone.isGranted;
+    } catch (_) {
+      micGranted = false;
+    }
+    notifyListeners();
+  }
+
+  /// Request reminder permissions. Returns true only if the wall lifts.
+  Future<bool> requestReminderPermissions() async {
+    try {
+      await Permission.notification.request();
+    } catch (_) {}
+    if (Platform.isAndroid) {
+      try {
+        await Permission.scheduleExactAlarm.request();
+      } catch (_) {}
+    }
+    await refreshPermissions();
+    if (remindersAvailable) {
+      await ensureScheduled();
+    }
+    return remindersAvailable;
+  }
+
+  Future<void> openSystemSettings() async {
+    await openAppSettings();
   }
 
   int _dayTotal(DateTime day) {

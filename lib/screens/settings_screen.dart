@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/voice_profile.dart';
 import '../providers/hydration_provider.dart';
-import '../services/notification_service.dart';
 import '../services/voice_reminder_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/custom_voice_card.dart';
@@ -27,6 +26,8 @@ class SettingsScreen extends StatelessWidget {
                     fontSize: 22,
                     color: AppTheme.ink)),
             const SizedBox(height: 14),
+            _permissionGate(context, h),
+            const SizedBox(height: 16),
             _sectionTitle('Daily Goal'),
             Card(
               child: Padding(
@@ -62,16 +63,17 @@ class SettingsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _sectionTitle('Reminders'),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Interval',
+            _locked(
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Interval',
                             style:
                                 TextStyle(color: AppTheme.muted)),
                         Text(
@@ -152,16 +154,19 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
             ),
+            !h.remindersAvailable,
+            ),
             const SizedBox(height: 16),
             _sectionTitle('Voice & Sound'),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Original TTS styles — not real celebrity clones (those need licensing).',
+            _locked(
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Original TTS styles — not real celebrity clones (those need licensing).',
                       style:
                           TextStyle(fontSize: 12, color: AppTheme.muted),
                     ),
@@ -244,15 +249,15 @@ class SettingsScreen extends StatelessWidget {
                                       BorderRadius.circular(16)),
                             ),
                             onPressed: () async {
-                              await NotificationService.init();
-                              await context
+                              final ok = await context
                                   .read<HydrationProvider>()
-                                  .ensureScheduled();
+                                  .requestReminderPermissions();
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context)
-                                    .showSnackBar(const SnackBar(
-                                        content: Text(
-                                            'Reminders armed — watch for the next buzz')));
+                                    .showSnackBar(SnackBar(
+                                        content: Text(ok
+                                            ? 'Reminders armed — watch for the next buzz'
+                                            : 'Permission needed — reminders stay locked')));
                               }
                             },
                             child: const Text('Enable alerts'),
@@ -264,8 +269,13 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
             ),
+            !h.remindersAvailable,
+            ),
             const SizedBox(height: 16),
-            const CustomVoiceCard(),
+            _locked(
+              const CustomVoiceCard(),
+              !h.remindersAvailable,
+            ),
             const SizedBox(height: 16),
             const QuietHoursCard(),
             const SizedBox(height: 16),
@@ -281,6 +291,110 @@ class SettingsScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _permissionGate(BuildContext context, HydrationProvider h) {
+    if (h.remindersAvailable && h.exactTiming) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE7F9EE),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.check_circle,
+                color: AppTheme.green, size: 20),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text('All reminder permissions granted',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.ink,
+                      fontSize: 13)),
+            ),
+          ],
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFECEC),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFFF6B6B), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.lock,
+                  color: Color(0xFFFF6B6B), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                  h.remindersAvailable
+                      ? 'Exact timing off'
+                      : 'Reminder features locked',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.ink,
+                      fontSize: 15)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            h.remindersAvailable
+                ? 'Allow exact alarms so buzzes land on the minute — otherwise they may arrive late.'
+                : 'Notification access is required. Intervals, voices, sounds and buzzes stay disabled until you grant it.',
+            style:
+                const TextStyle(color: AppTheme.muted, fontSize: 13),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B6B),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                  onPressed: () => context
+                      .read<HydrationProvider>()
+                      .requestReminderPermissions(),
+                  child: const Text('Grant access',
+                      style: TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: () => context
+                      .read<HydrationProvider>()
+                      .openSystemSettings(),
+                  child: const Text('Open settings'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _locked(Widget child, bool locked) {
+    if (!locked) return child;
+    return Opacity(
+      opacity: 0.45,
+      child: IgnorePointer(ignoring: true, child: child),
     );
   }
 

@@ -5,8 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
-class CustomVoiceService {
-  static final AudioRecorder _recorder = AudioRecorder();
+class CustomVoiceService {  static final AudioRecorder _recorder = AudioRecorder();
 
   static Future<String> _dir() async {
     final d = await getApplicationDocumentsDirectory();
@@ -18,6 +17,14 @@ class CustomVoiceService {
   static Future<bool> ensureMicPermission() async {
     final status = await Permission.microphone.request();
     return status.isGranted;
+  }
+
+  /// Mic state without prompting (for locked/denied UX).
+  static Future<MicStatus> micStatus() async {
+    final s = await Permission.microphone.status;
+    if (s.isGranted || s.isLimited) return MicStatus.granted;
+    if (s.isPermanentlyDenied) return MicStatus.permanentlyDenied;
+    return MicStatus.denied;
   }
 
   static Future<String?> startRecording() async {
@@ -133,3 +140,5 @@ class CustomVoiceService {
     }
   }
 }
+
+enum MicStatus { granted, denied, permanentlyDenied }

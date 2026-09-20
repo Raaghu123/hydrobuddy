@@ -12,6 +12,7 @@ Future<void> main() async {
   await NotificationService.init();
   final hydration = HydrationProvider();
   await hydration.load();
+  await hydration.refreshPermissions();
   // Notification taps / action buttons work even when the app was closed.
   NotificationService.onAction = (action) async {
     if (action == 'drank_250') {
@@ -51,13 +52,36 @@ class _Tabs extends StatefulWidget {
   State<_Tabs> createState() => _TabsState();
 }
 
-class _TabsState extends State<_Tabs> {
+class _TabsState extends State<_Tabs> with WidgetsBindingObserver {
   int _i = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // User may grant/deny in system Settings — re-check on return.
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<HydrationProvider>().refreshPermissions();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomeScreen(onViewAllHistory: () => setState(() => _i = 1)),
+      HomeScreen(
+        onViewAllHistory: () => setState(() => _i = 1),
+        onEnableReminders: () => setState(() => _i = 2),
+      ),
       const StatsScreen(),
       const SettingsScreen(),
     ];

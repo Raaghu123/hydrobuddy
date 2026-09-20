@@ -32,6 +32,12 @@ State = SharedPreferences JSON. Voice = on-device TTS / recordings / uploads.
 2. **App open:** `HomeScreen` 20s timer → `tick()` → `VoiceReminderService.playReminder()` + snackbar.
 3. Quiet hours suppress both and push `nextReminderAt` past wake.
 
+## Permission wall (hard gate)
+- Reminder/voice/sound features require `Permission.notification`; UI (Settings cards, Home voice banner) is disabled + CTA shown until granted. `tick()`/`ensureScheduled()` no-op scheduling while denied.
+- Exact-minute timing needs `scheduleExactAlarm` (Android) — warning tile, not a block.
+- Mic recording needs `Permission.microphone`; permanently-denied opens system settings.
+- Provider owns `notifGranted/alarmGranted/micGranted` + `refreshPermissions()`; `_Tabs` refreshes on resume; `requestReminderPermissions()` lifts the wall and schedules.
+
 ## Gotchas (learned the hard way)
 - `android/` is NEVER committed; CI regenerates via `flutter create`. Don't hand-write manifests (v1-embedding breakage).
 - `flutter_local_notifications` v17 NEEDS desugaring → `patch_android.py` appends it. v16 doesn't compile on new SDK. Stay on v17+.
